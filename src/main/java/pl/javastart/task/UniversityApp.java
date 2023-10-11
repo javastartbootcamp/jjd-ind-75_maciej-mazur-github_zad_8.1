@@ -1,6 +1,7 @@
 package pl.javastart.task;
 
 public class UniversityApp {
+    private final University university = new University();
 
     /**
      * Tworzy prowadzącego zajęcia.
@@ -13,7 +14,9 @@ public class UniversityApp {
      * @param lastName  - nazwisko prowadzącego
      */
     public void createLecturer(int id, String degree, String firstName, String lastName) {
-
+        if (university.addLecturer(id, degree, firstName, lastName) == University.LECTURER_EXISTS) {
+            System.out.println("Prowadzący z id " + id + " już istnieje");
+        }
     }
 
     /**
@@ -28,9 +31,18 @@ public class UniversityApp {
      * @param lecturerId - identyfikator prowadzącego. Musi zostać wcześniej utworzony za pomocą metody {@link #createLecturer(int, String, String, String)}
      */
     public void createGroup(String code, String name, int lecturerId) {
+        int operationResult = university.addGroup(code, name, lecturerId);
 
+        switch (operationResult) {
+            case University.LECTURER_DOESNT_EXIST
+                    -> System.out.println("Prowadzący o id " + lecturerId + " nie istnieje");
+            case University.GROUP_EXISTS
+                    -> System.out.println("Grupa " + code + " już istnieje");
+            default -> {
+                return;
+            }
+        }
     }
-
 
     /**
      * Dodaje studenta do grupy zajęciowej.
@@ -43,9 +55,20 @@ public class UniversityApp {
      * @param lastName  - nazwisko studenta
      */
     public void addStudentToGroup(int index, String groupCode, String firstName, String lastName) {
+        int operationResult = university.addStudentToGroup(index, groupCode, firstName, lastName);
 
+        if (operationResult == University.GROUP_DOESNT_EXIST) {
+            System.out.println("Grupa " + groupCode + " nie istnieje");
+        }
+        switch (operationResult) {
+            case University.GROUP_DOESNT_EXIST -> System.out.println("Grupa " + groupCode + " nie istnieje");
+            case University.STUDENT_EXISTS_IN_GROUP
+                    -> System.out.println("Student o indeksie " + index + " jest już w grupie " + groupCode);
+            default -> {
+                return;
+            }
+        }
     }
-
 
     /**
      * Wyświetla informacje o grupie w zadanym formacie.
@@ -62,7 +85,7 @@ public class UniversityApp {
      * @param groupCode - kod grupy, dla której wyświetlić informacje
      */
     public void printGroupInfo(String groupCode) {
-
+        university.printGroupInfo(groupCode);
     }
 
     /**
@@ -80,7 +103,19 @@ public class UniversityApp {
      * @param grade        - ocena
      */
     public void addGrade(int studentIndex, String groupCode, double grade) {
+        int operationResult = university.addGrade(studentIndex, groupCode, grade);
 
+        switch (operationResult) {
+            case University.STUDENT_DOESNT_EXIST_IN_GROUP ->
+                    System.out.println("Student o indeksie " + studentIndex + " nie jest zapisany do grupy " + groupCode);
+            case University.GRADE_EXISTS ->
+                    System.out.println("Student o indeksie " + studentIndex + " ma już wystawioną ocenę dla grupy " + groupCode);
+            case University.GROUP_DOESNT_EXIST ->
+                    System.out.println("Grupa " + groupCode + " nie istnieje");
+            default -> {
+                return;
+            }
+        }
     }
 
     /**
@@ -92,7 +127,7 @@ public class UniversityApp {
      * @param index - numer indesku studenta dla którego wyświetlić oceny
      */
     public void printGradesForStudent(int index) {
-
+        university.printGradesForStudent(index);
     }
 
     /**
@@ -105,7 +140,7 @@ public class UniversityApp {
      * @param groupCode - kod grupy, dla której wyświetlić oceny
      */
     public void printGradesForGroup(String groupCode) {
-
+        university.printGradesForGroup(groupCode);
     }
 
     /**
@@ -117,6 +152,6 @@ public class UniversityApp {
      * 189521 Anna Kowalska
      */
     public void printAllStudents() {
-
+        university.printAllStudents();
     }
 }
