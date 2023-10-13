@@ -1,5 +1,7 @@
 package pl.javastart.task;
 
+import java.util.Optional;
+
 class Group {
     private final String code;
     private final String name;
@@ -14,8 +16,8 @@ class Group {
         students = new Student[UniversityApp.STUDENTS_PER_GROUP];
     }
 
-    void printGroupInfo() {
-        System.out.printf("Kod: %s%nNazwa: %s%nProwadzący: %s%nUczestnicy:%n%s",
+    String printGroupInfo() {
+        return String.format("Kod: %s%nNazwa: %s%nProwadzący: %s%nUczestnicy:%n%s",
                 code, name, lecturer.getInfo(), getStudentsInfo());
     }
 
@@ -49,14 +51,14 @@ class Group {
         return code;
     }
 
-    int findStudent(int index) {
+    Optional<Student> findStudentInGroup(int index) {
         for (int i = 0; i < currentStudentsNumber; i++) {
             if (students[i].getIndex() == index) {
-                return i;
+                return Optional.of(students[i]);
             }
         }
 
-        return UniversityApp.NOT_FOUND;
+        return Optional.empty();
     }
 
     public String getName() {

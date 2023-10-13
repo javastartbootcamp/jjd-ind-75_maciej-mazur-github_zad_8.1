@@ -1,12 +1,13 @@
 package pl.javastart.task;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 public class UniversityApp {
     static final int STUDENTS_PER_GROUP = 15;
     private static final int LECTURERS_PER_UNIVERSITY = 20;
     private static final int STUDENTS_PER_UNIVERSITY = 100;
     private static final int GROUPS_PER_UNIVERSITY = 20;
-
-    static final int NOT_FOUND = -1;
 
     private int currentStudentsNumber = 0;
     private int currentLecturersNumber = 0;
@@ -17,28 +18,6 @@ public class UniversityApp {
     private Lecturer[] lecturers = new Lecturer[LECTURERS_PER_UNIVERSITY];
     private Group[] groups = new Group[GROUPS_PER_UNIVERSITY];
     private Grade[] grades = new Grade[GROUPS_PER_UNIVERSITY * STUDENTS_PER_GROUP];
-
-    private int findLecturer(int id) {
-        for (int i = 0; i < currentLecturersNumber; i++) {
-            if (lecturers[i].getId() == id) {
-                return i;
-            }
-        }
-
-        return NOT_FOUND;
-    }
-
-    private void extendLecturers() {
-        Lecturer[] extendedArray = new Lecturer[lecturers.length + LECTURERS_PER_UNIVERSITY];
-        System.arraycopy(lecturers, 0, extendedArray, 0, lecturers.length);
-        lecturers = extendedArray;
-    }
-
-    private void extendGrades() {
-        Grade[] extendedArray = new Grade[grades.length + GROUPS_PER_UNIVERSITY * STUDENTS_PER_GROUP];
-        System.arraycopy(grades, 0, extendedArray, 0, grades.length);
-        grades = extendedArray;
-    }
 
     /**
      * Tworzy prowadzącego zajęcia.
@@ -51,8 +30,9 @@ public class UniversityApp {
      * @param lastName  - nazwisko prowadzącego
      */
     public void createLecturer(int id, String degree, String firstName, String lastName) {
-        if (findLecturer(id) != NOT_FOUND) {
+        if (findLecturer(id).isPresent()) {
             System.out.println("Prowadzący z id " + id + " już istnieje");
+            return;
         }
 
         if (currentLecturersNumber >= LECTURERS_PER_UNIVERSITY) {
@@ -62,35 +42,28 @@ public class UniversityApp {
         lecturers[currentLecturersNumber++] = new Lecturer(firstName, lastName, id, degree);
     }
 
-    private int findGroup(String code) {
-        for (int i = 0; i < currentGroupsNumber; i++) {
-            if (groups[i].getCode().equals(code)) {
-                return i;
+    private Optional<Lecturer> findLecturer(int id) {
+        for (int i = 0; i < currentLecturersNumber; i++) {
+            if (lecturers[i].getId() == id) {
+                return Optional.of(lecturers[i]);
             }
         }
 
-        return NOT_FOUND;
+        return Optional.empty();
     }
 
-    private void extendGroups() {
-        Group[] extendedArray = new Group[groups.length + GROUPS_PER_UNIVERSITY];
-        System.arraycopy(groups, 0, extendedArray, 0, groups.length);
-        groups = extendedArray;
+    private void extendLecturers() {
+        lecturers = Arrays.copyOf(lecturers, lecturers.length + LECTURERS_PER_UNIVERSITY);
     }
 
-    private int findStudentInGroup(int groupPositionInArray, int index) {
-        Group group = groups[groupPositionInArray];
-        return group.findStudent(index);
-    }
-
-    private Student findStudentInUniversity(int index) {
+    private Optional<Student> findStudentInStudentsArray(int index) {
         for (int i = 0; i < currentStudentsNumber; i++) {
             if (students[i].getIndex() == index) {
-                return students[i];
+                return Optional.of(students[i]);
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     private void addStudentToStudentsInUniversity(Student student) {
@@ -102,19 +75,17 @@ public class UniversityApp {
     }
 
     private void extendStudents() {
-        Student[] extendedArray = new Student[students.length + STUDENTS_PER_UNIVERSITY];
-        System.arraycopy(students, 0, extendedArray, 0, students.length);
-        students = extendedArray;
+        students = Arrays.copyOf(students, students.length + STUDENTS_PER_UNIVERSITY);
     }
 
-    private Student findStudentInGrades(int index, String groupCode) {
+    private Optional<Student> findStudentInGradesArray(int index, String groupCode) {
         for (int i = 0; i < currentGradesNumber; i++) {
             if (grades[i].getStudent().getIndex() == index && grades[i].getGroup().getCode().equals(groupCode)) {
-                return grades[i].getStudent();
+                return Optional.of(grades[i].getStudent());
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -129,14 +100,14 @@ public class UniversityApp {
      * @param lecturerId - identyfikator prowadzącego. Musi zostać wcześniej utworzony za pomocą metody {@link #createLecturer(int, String, String, String)}
      */
     public void createGroup(String code, String name, int lecturerId) {
-        int lecturerPositionInArray = findLecturer(lecturerId);
+        Optional<Lecturer> lecturer = findLecturer(lecturerId);
 
-        if (lecturerPositionInArray == NOT_FOUND) {
+        if (lecturer.isEmpty()) {
             System.out.println("Prowadzący o id " + lecturerId + " nie istnieje");
             return;
         }
 
-        if (findGroup(code) != NOT_FOUND) {
+        if (findGroupInGroupsArray(code).isPresent()) {
             System.out.println("Grupa " + code + " już istnieje");
             return;
         }
@@ -145,7 +116,21 @@ public class UniversityApp {
             extendGroups();
         }
 
-        groups[currentGroupsNumber++] = new Group(code, name, lecturers[lecturerPositionInArray]);
+        groups[currentGroupsNumber++] = new Group(code, name, lecturer.get());
+    }
+
+    private Optional<Group> findGroupInGroupsArray(String code) {
+        for (int i = 0; i < currentGroupsNumber; i++) {
+            if (groups[i].getCode().equals(code)) {
+                return Optional.of(groups[i]);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private void extendGroups() {
+        groups = Arrays.copyOf(groups, groups.length + GROUPS_PER_UNIVERSITY);
     }
 
     /**
@@ -159,25 +144,42 @@ public class UniversityApp {
      * @param lastName  - nazwisko studenta
      */
     public void addStudentToGroup(int index, String groupCode, String firstName, String lastName) {
-        int groupPositionInArray = findGroup(groupCode);
-        if (groupPositionInArray == NOT_FOUND) {
+        Optional<Group> group = findGroupInGroupsArray(groupCode);
+
+        if (group.isEmpty()) {
             System.out.println("Grupa " + groupCode + " nie istnieje");
             return;
         }
 
-        if (findStudentInGroup(groupPositionInArray, index) != NOT_FOUND) {
+        Optional<Student> studentSoughtInGroup = group.get().findStudentInGroup(index);
+
+        if (studentSoughtInGroup.isPresent()) {
             System.out.println("Student o indeksie " + index + " jest już w grupie " + groupCode);
             return;
         }
 
-        Student addedStudent = findStudentInUniversity(index);
+        /*
+        Do tego miejsca dociera program w sytuacji, w której przeszukanie danej grupy w poszukiwaniu studenta zwróciło null.
+        Referencja student wskazuje już zatem na tym etapie na bezużyteczny obszar, wykorzystam więc ją nieco niżej do wskazania na inny obszar.
+        Dopisywany student mógł natomiast nie być jeszcze zapisany do danej grupy,
+         ale może być zarejestrowany w jakiejś innej grupie, a w takim wypadku będzie też obecny w tablicy Students[] students
+         zrzeszającej wszystkich studentów ze wszystkich grup uniwersytetu (tyle że bez powtórzeń). Jeśli ów student zostanie znaleziony w tablicy
+         Students[] students, to znalezioną w ten sposób referencję do niego użyję do finalnego dodania tego studenta do danej grupy, unikając tym
+         samym konieczności tworzenia nowego obiektu klasy Student. Konieczność ta zaistnieje tylko w razie nieznalezienia danego studenta nawet
+         w zbiorczej tablicy students
+        */
+        Optional<Student> studentSoughtInStudentsArray = findStudentInStudentsArray(index);
 
-        if (addedStudent == null) {
-            addedStudent = new Student(firstName, lastName, index);
-            addStudentToStudentsInUniversity(addedStudent);
+        Student brandNewStudent;
+
+        if (studentSoughtInStudentsArray.isEmpty()) {
+            brandNewStudent = new Student(firstName, lastName, index);
+            addStudentToStudentsInUniversity(brandNewStudent);
+        } else {
+            brandNewStudent = studentSoughtInStudentsArray.get();
         }
 
-        groups[groupPositionInArray].addStudent(addedStudent);
+        group.get().addStudent(brandNewStudent);
     }
 
     /**
@@ -195,15 +197,14 @@ public class UniversityApp {
      * @param groupCode - kod grupy, dla której wyświetlić informacje
      */
     public void printGroupInfo(String groupCode) {
-        int groupPositionInArray = findGroup(groupCode);
+        Optional<Group> group = findGroupInGroupsArray(groupCode);
 
-        if (groupPositionInArray == NOT_FOUND) {
+        if (group.isEmpty()) {
             System.out.println("Grupa " + groupCode + " nie znaleziona");
             return;
         }
 
-        Group group = groups[groupPositionInArray];
-        group.printGroupInfo();
+        System.out.println(group.get().printGroupInfo());
     }
 
     /**
@@ -221,32 +222,30 @@ public class UniversityApp {
      * @param grade        - ocena
      */
     public void addGrade(int studentIndex, String groupCode, double grade) {
-        int groupArrayPosition = findGroup(groupCode);
+        Optional<Group> group = findGroupInGroupsArray(groupCode);
 
-        if (groupArrayPosition == NOT_FOUND) {
+        if (group.isEmpty()) {
             System.out.println("Grupa " + groupCode + " nie istnieje");
             return;
         }
 
-        Group group = groups[groupArrayPosition];
-        int studentArrayPosition = group.findStudent(studentIndex);
+        Optional<Student> studentInGroup = group.get().findStudentInGroup(studentIndex);
 
-        if (studentArrayPosition == NOT_FOUND) {
+        if (studentInGroup.isEmpty()) {
             System.out.println("Student o indeksie " + studentIndex + " nie jest zapisany do grupy " + groupCode);
             return;
         }
 
-        Student student = findStudentInGrades(studentIndex, groupCode);
+        /*
+        Oceny wyciągnięte zostały z klasy Group i zamiast tego umieszczone w klasie University jako tablica obiektów klasy Grade.
+        Z tego powodu na tym etapie konieczne jest wyszukanie studenta ponownie, tym razem jednak właśnie w tablicy Grade[]
+        grades, by sprawdzić, czy znajduje się on tam już z danym numerem indeksu i z danym kodem grupy, czy nie (czyli by sprawdzić,
+        czy ma już wystawioną ocenę, czy jeszcze nie).
+         */
+        Optional<Student> studentInGradesArray = findStudentInGradesArray(studentIndex, groupCode);
 
-        if (student != null) {
+        if (studentInGradesArray.isPresent()) {
             System.out.println("Student o indeksie " + studentIndex + " ma już wystawioną ocenę dla grupy " + groupCode);
-            return;
-        }
-
-        Student studentInUniversity = findStudentInUniversity(studentIndex);
-
-        if (studentInUniversity == null) {
-            System.out.println("Student o indeksie " + studentIndex + " nie jest zapisany do żadnej grupy");
             return;
         }
 
@@ -254,7 +253,11 @@ public class UniversityApp {
             extendGrades();
         }
 
-        grades[currentGradesNumber++] = new Grade(studentInUniversity, group, grade);
+        grades[currentGradesNumber++] = new Grade(studentInGroup.get(), group.get(), grade);
+    }
+
+    private void extendGrades() {
+        grades = Arrays.copyOf(grades, grades.length + GROUPS_PER_UNIVERSITY * STUDENTS_PER_GROUP);
     }
 
     /**
@@ -283,9 +286,13 @@ public class UniversityApp {
      * @param groupCode - kod grupy, dla której wyświetlić oceny
      */
     public void printGradesForGroup(String groupCode) {
-        int groupPositionInArray = findGroup(groupCode);
+        Optional<Group> group = findGroupInGroupsArray(groupCode);
 
-        if (groupPositionInArray == NOT_FOUND) {
+        /*
+        Scenariusz nie wymagany w treści zadania, ale wymagany przez testy. Test void shouldNotPrintGradesWhenGroupDoesntExits()
+        failuje, jeśli przy próbie wydruku ocen nieistniejącej grupy program nie zwraca poniższego komunikatu błędu
+         */
+        if (group.isEmpty()) {
             System.out.println("Grupa " + groupCode + " nie istnieje");
             return;
         }
